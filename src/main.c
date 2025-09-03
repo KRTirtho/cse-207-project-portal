@@ -130,8 +130,10 @@ void admin_menu(AdminNode **admins, FacultyNode **faculties, StudentNode **stude
             "5. Remove Admin\n"
             "6. Add Faculty\n"
             "7. Remove Faculty\n"
-            "8. Add Student\n"
-            "9. Remove Student\n"
+            "8. Assign Faculty Course\n"
+            "9. Dissociate Faculty Course\n"
+            "10. Add Student\n"
+            "11. Remove Student\n"
             "0. Logout\n"
             "Select: ");
 
@@ -233,6 +235,82 @@ void admin_menu(AdminNode **admins, FacultyNode **faculties, StudentNode **stude
         }
         case 8:
         {
+            uint32_t faculty_id;
+            char course_code[MAX_COURSE_CODE_LENGTH];
+            uint8_t section;
+
+            printf("Faculty ID: ");
+            if (scanf("%u", &faculty_id) != 1)
+            {
+                while (getchar() != '\n')
+                    ;
+                break;
+            }
+
+            getchar();
+
+            printf("Course Code: ");
+            fgets(course_code, sizeof(course_code), stdin);
+            course_code[strcspn(course_code, "\n")] = 0;
+
+            printf("Section: ");
+            if (scanf("%hhu", &section) != 1)
+            {
+                while (getchar() != '\n')
+                    ;
+                break;
+            }
+
+            Faculty *faculty = find_faculty_by_id(*faculties, faculty_id);
+            if (!faculty)
+            {
+                printf("Faculty not found!\n");
+                break;
+            }
+
+            push_faculty_course(faculty, course_code, section);
+            break;
+        }
+        case 9:
+        {
+            uint32_t faculty_id;
+            char course_code[MAX_COURSE_CODE_LENGTH];
+            uint8_t section;
+
+            printf("Faculty ID: ");
+            if (scanf("%u", &faculty_id) != 1)
+            {
+                while (getchar() != '\n')
+                    ;
+                break;
+            }
+
+            getchar();
+
+            printf("Course Code: ");
+            fgets(course_code, sizeof(course_code), stdin);
+            course_code[strcspn(course_code, "\n")] = 0;
+
+            printf("Section: ");
+            if (scanf("%hhu", &section) != 1)
+            {
+                while (getchar() != '\n')
+                    ;
+                break;
+            }
+
+            Faculty *faculty = find_faculty_by_id(*faculties, faculty_id);
+            if (!faculty)
+            {
+                printf("Faculty not found!\n");
+                break;
+            }
+
+            remove_faculty_course(faculty, course_code, section);
+            break;
+        }
+        case 10:
+        {
             uint32_t advisor_id, student_add_id;
             char name[MAX_NAME_LENGTH], email[MAX_EMAIL_LENGTH], password[MAX_PASSWORD_LENGTH], dept[MAX_DEPARTMENT_LENGTH];
             uint16_t year;
@@ -299,7 +377,7 @@ void admin_menu(AdminNode **admins, FacultyNode **faculties, StudentNode **stude
             create_student(students, student_add_id, name, email, password, dept, year, month, advisor);
             break;
         }
-        case 9:
+        case 11:
         {
             uint32_t student_delete_id;
             printf("Student ID to remove: ");

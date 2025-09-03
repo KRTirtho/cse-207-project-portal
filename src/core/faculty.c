@@ -75,7 +75,7 @@ void print_faculty_list(FacultyNode *list)
     while (cur)
     {
         printf("ID:%u Name:%s Dept:%s", cur->faculty->id, cur->faculty->name, cur->faculty->department);
-        printf("Courses: ");
+        printf(" Courses: ");
         FacultyCourseNode *course = cur->faculty->courses;
         while (course)
         {
@@ -85,10 +85,6 @@ void print_faculty_list(FacultyNode *list)
         printf("\n");
         cur = cur->next;
     }
-}
-
-void add_faculty_course(Faculty *faculty, const char *code, uint8_t section)
-{
 }
 
 FacultyCourseNode *create_faculty_course(const char *code, uint8_t section)
