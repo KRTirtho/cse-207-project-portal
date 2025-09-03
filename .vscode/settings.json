@@ -4,6 +4,7 @@
     "stdint.h": "c",
     "faculty.h": "c",
     "stdio.h": "c",
-    "admin.h": "c"
+    "admin.h": "c",
+    "admin_menu.h": "c"
   }
 }
