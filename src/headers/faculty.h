@@ -44,6 +44,7 @@ Faculty *faculty_from_json(cJSON *json);
 /* Faculty CRUD */
 Faculty *create_faculty(FacultyNode **list, uint32_t id, const char *name, const char *email, const char *password, const char *dept);
 int delete_faculty(FacultyNode **list, uint32_t id);
+void print_faculty(Faculty *faculty);
 void print_faculty_list(FacultyNode *list);
 
 /* Helpers */

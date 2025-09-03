@@ -6,6 +6,8 @@
     "stdio.h": "c",
     "admin.h": "c",
     "admin_menu.h": "c",
-    "faculty_menu.h": "c"
+    "faculty_menu.h": "c",
+    "student_menu.h": "c",
+    "stdlib.h": "c"
   }
 }

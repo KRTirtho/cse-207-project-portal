@@ -69,19 +69,25 @@ int delete_faculty(FacultyNode **list, uint32_t id)
     return -1;
 }
 
+void print_faculty(Faculty *faculty)
+{
+    printf("ID:%u Name:%s Dept:%s", faculty->id, faculty->name, faculty->department);
+    printf(" Courses: ");
+    FacultyCourseNode *course = faculty->courses;
+    while (course)
+    {
+        printf("%s (Section %d) ", course->code, course->section);
+        course = course->next;
+    }
+    printf("\n");
+}
+
 void print_faculty_list(FacultyNode *list)
 {
     FacultyNode *cur = list;
     while (cur)
     {
-        printf("ID:%u Name:%s Dept:%s", cur->faculty->id, cur->faculty->name, cur->faculty->department);
-        printf(" Courses: ");
-        FacultyCourseNode *course = cur->faculty->courses;
-        while (course)
-        {
-            printf("%s (Section %d) ", course->code, course->section);
-            course = course->next;
-        }
+        print_faculty(cur->faculty);
         printf("\n");
         cur = cur->next;
     }

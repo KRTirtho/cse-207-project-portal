@@ -58,7 +58,7 @@ int main(void)
         {
             Student *logged = student_login(students);
             if (logged)
-                student_menu(&students, &faculties);
+                student_menu(logged, &students, &faculties);
             else
                 printf("Invalid credentials.\n");
             save_all(admins, faculties, students);
