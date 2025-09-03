@@ -329,9 +329,9 @@ void load_students(StudentNode **list, const char *filename, FacultyNode *facult
         fread(buffer, 1, length, fp);
     }
     fclose(fp);
-
+    
     if (!buffer)
-        return;
+    return;
 
     cJSON *json = cJSON_Parse(buffer);
     free(buffer);
@@ -357,7 +357,6 @@ void load_students(StudentNode **list, const char *filename, FacultyNode *facult
             }
         }
     }
-    fclose(fp);
 }
 
 Student *student_login(StudentNode *list)

@@ -1,6 +1,7 @@
 *.txt
 !CMakeLists.txt
 
+*.json
 *.o
 
 build

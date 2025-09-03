@@ -79,6 +79,7 @@ int main(void)
         case 5:
         {
             create_root_admin(&admins);
+            save_all(admins, faculties, students);
             break;
         }
         case 0:
