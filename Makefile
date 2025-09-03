@@ -7,6 +7,7 @@ TARGET = ./build/main
 all: $(TARGET)
 
 $(TARGET): $(OBJECTS)
+	mkdir -p ./build
 	$(CC) $(OBJECTS) -o $(TARGET)
 
 %.o: %.c
