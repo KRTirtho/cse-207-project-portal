@@ -227,3 +227,31 @@ void load_students(StudentNode **list, const char *filename, FacultyNode *facult
     }
     fclose(fp);
 }
+
+Student *student_login(StudentNode *list)
+{
+    char email[MAX_EMAIL_LENGTH], pass[MAX_PASSWORD_LENGTH];
+
+    while (1)
+    {
+        printf("Student Login\nEmail: ");
+        fgets(email, sizeof(email), stdin);
+        email[strcspn(email, "\n")] = 0;
+
+        printf("Password: ");
+        fgets(pass, sizeof(pass), stdin);
+        pass[strcspn(pass, "\n")] = 0;
+        StudentNode *cur = list;
+        while (cur)
+        {
+            if (strcmp(cur->student->email, email) == 0 && strcmp(cur->student->password, pass) == 0)
+                return cur->student;
+            cur = cur->next;
+        }
+        printf("Invalid credentials. Please try again.\n\n");
+    }
+}
+
+void student_self_advising(Student *s)
+{
+}

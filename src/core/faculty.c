@@ -1,9 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
-
 #include "faculty.h"
 
-/* ---------- Internal helpers ---------- */
 static void trim_newline(char *s)
 {
     if (!s)
@@ -13,7 +11,6 @@ static void trim_newline(char *s)
         s[n - 1] = '\0';
 }
 
-/* ---------- CRUD ---------- */
 Faculty *create_faculty(FacultyNode **list, uint32_t id, const char *name, const char *email, const char *password, const char *dept)
 {
     Faculty *f = (Faculty *)malloc(sizeof(Faculty));
@@ -77,8 +74,7 @@ void print_faculty_list(FacultyNode *list)
     FacultyNode *cur = list;
     while (cur)
     {
-        printf("ID:%u Name:%s Dept:%s\n",
-               cur->faculty->id, cur->faculty->name, cur->faculty->department);
+        printf("ID:%u Name:%s Dept:%s\n", cur->faculty->id, cur->faculty->name, cur->faculty->department);
         cur = cur->next;
     }
 }
@@ -86,31 +82,18 @@ void print_faculty_list(FacultyNode *list)
 Faculty *find_faculty_by_id(FacultyNode *list, uint32_t id)
 {
     for (FacultyNode *cur = list; cur; cur = cur->next)
-    {
         if (cur->faculty->id == id)
             return cur->faculty;
-    }
     return NULL;
 }
 
-/* ---------- File I/O ---------- */
-/* Format (one faculty per line):
-   id|name|email|password|dept
-*/
 void save_faculty(FacultyNode *list, const char *filename)
 {
     FILE *fp = fopen(filename, "w");
     if (!fp)
         return;
     for (FacultyNode *cur = list; cur; cur = cur->next)
-    {
-        fprintf(fp, "%u|%s|%s|%s|%s\n",
-                cur->faculty->id,
-                cur->faculty->name,
-                cur->faculty->email,
-                cur->faculty->password,
-                cur->faculty->department);
-    }
+        fprintf(fp, "%u|%s|%s|%s|%s\n", cur->faculty->id, cur->faculty->name, cur->faculty->email, cur->faculty->password, cur->faculty->department);
     fclose(fp);
 }
 
@@ -136,4 +119,30 @@ void load_faculty(FacultyNode **list, const char *filename)
         create_faculty(list, id, name, email, pass, dept);
     }
     fclose(fp);
+}
+
+Faculty *faculty_login(FacultyNode *list)
+{
+    char email[MAX_EMAIL_LENGTH], pass[MAX_PASSWORD_LENGTH];
+
+    while (1)
+    {
+        printf("Faculty Login\nEmail: ");
+        fgets(email, sizeof(email), stdin);
+        email[strcspn(email, "\n")] = 0;
+        
+        printf("Password: ");
+        fgets(pass, sizeof(pass), stdin);
+        pass[strcspn(pass, "\n")] = 0;
+        FacultyNode *cur = list;
+
+        while (cur)
+        {
+            if (strcmp(cur->faculty->email, email) == 0 && strcmp(cur->faculty->password, pass) == 0)
+                return cur->faculty;
+            cur = cur->next;
+        }
+        
+        printf("Invalid credentials. Please try again.\n\n");
+    }
 }

@@ -1,8 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
-
 #include "admin.h"
-/* ---------- Internal helpers ---------- */
+
 static void trim_newline(char *s)
 {
     if (!s)
@@ -12,7 +11,6 @@ static void trim_newline(char *s)
         s[n - 1] = '\0';
 }
 
-/* ---------- CRUD ---------- */
 Admin *create_admin(AdminNode **list, uint32_t id, const char *name, const char *email, const char *password)
 {
     Admin *a = (Admin *)malloc(sizeof(Admin));
@@ -73,29 +71,18 @@ void print_admin_list(AdminNode *list)
     AdminNode *cur = list;
     while (cur)
     {
-        printf("ID:%u Name:%s Email:%s\n",
-               cur->admin->id, cur->admin->name, cur->admin->email);
+        printf("ID:%u Name:%s Email:%s\n", cur->admin->id, cur->admin->name, cur->admin->email);
         cur = cur->next;
     }
 }
 
-/* ---------- File I/O ---------- */
-/* Format (one admin per line):
-   id|name|email|password
-*/
 void save_admins(AdminNode *list, const char *filename)
 {
     FILE *fp = fopen(filename, "w");
     if (!fp)
         return;
     for (AdminNode *cur = list; cur; cur = cur->next)
-    {
-        fprintf(fp, "%u|%s|%s|%s\n",
-                cur->admin->id,
-                cur->admin->name,
-                cur->admin->email,
-                cur->admin->password);
-    }
+        fprintf(fp, "%u|%s|%s|%s\n", cur->admin->id, cur->admin->name, cur->admin->email, cur->admin->password);
     fclose(fp);
 }
 
@@ -117,7 +104,33 @@ void load_admins(AdminNode **list, const char *filename)
         if (!id_str || !name || !email || !pass)
             continue;
         uint32_t id = (uint32_t)strtoul(id_str, NULL, 10);
-        create_admin(*&list, id, name, email, pass); // append
+        create_admin(list, id, name, email, pass);
     }
     fclose(fp);
+}
+
+Admin *admin_login(AdminNode *list)
+{
+    char email[MAX_EMAIL_LENGTH], pass[MAX_PASSWORD_LENGTH];
+
+    while (1)
+    {
+        printf("Admin Login\nEmail: ");
+        fgets(email, sizeof(email), stdin);
+        email[strcspn(email, "\n")] = 0;
+
+        printf("Password: ");
+        fgets(pass, sizeof(pass), stdin);
+        pass[strcspn(pass, "\n")] = 0;
+
+        AdminNode *cur = list;
+        while (cur)
+        {
+            if (strcmp(cur->admin->email, email) == 0 && strcmp(cur->admin->password, pass) == 0)
+                return cur->admin;
+            cur = cur->next;
+        }
+
+        printf("Invalid credentials. Please try again.\n\n");
+    }
 }

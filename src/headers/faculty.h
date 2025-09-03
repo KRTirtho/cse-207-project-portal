@@ -33,4 +33,7 @@ Faculty *find_faculty_by_id(FacultyNode *list, uint32_t id);
 void save_faculty(FacultyNode *list, const char *filename);
 void load_faculty(FacultyNode **list, const char *filename);
 
+/* Login */
+Faculty *faculty_login(FacultyNode *list);
+
 #endif

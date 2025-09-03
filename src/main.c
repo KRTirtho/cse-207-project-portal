@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include "admin.h"
 #include "faculty.h"
 #include "student.h"
@@ -10,12 +9,104 @@
 #define FACULTY_FILE "faculty.txt"
 #define STUDENTS_FILE "students.txt"
 
-static void mainMenu(void);
-static void adminMenu(AdminNode **admins);
-static void facultyMenu(FacultyNode **faculty);
-static void studentMenu(StudentNode **students, FacultyNode *facultyList);
+static void main_menu(void);
+static void save_all(AdminNode *a, FacultyNode *f, StudentNode *s);
 
-/* optional: write immediately after each change */
+static void admin_menu(AdminNode **admins, FacultyNode **faculties, StudentNode **students);
+static void faculty_menu(FacultyNode **faculty);
+static void student_menu(StudentNode **students, FacultyNode **faculty);
+
+static void create_root_admin(AdminNode **admins);
+
+int main(void)
+{
+    AdminNode *admins = NULL;
+    FacultyNode *faculties = NULL;
+    StudentNode *students = NULL;
+    load_admins(&admins, ADMINS_FILE);
+    load_faculty(&faculties, FACULTY_FILE);
+    load_students(&students, STUDENTS_FILE, faculties);
+
+    int choice = -1;
+    while (choice != 0)
+    {
+        main_menu();
+        if (scanf("%d", &choice) != 1)
+        {
+            while (getchar() != '\n')
+                ;
+            continue;
+        }
+        getchar();
+        switch (choice)
+        {
+        case 1:
+        {
+            Admin *logged = admin_login(admins);
+            if (logged)
+                admin_menu(&admins, &faculties, &students);
+            else
+                printf("Invalid credentials.\n");
+            save_all(admins, faculties, students);
+        }
+        break;
+        case 2:
+        {
+            Faculty *logged = faculty_login(faculties);
+            if (logged)
+                faculty_menu(&faculties);
+            else
+                printf("Invalid credentials.\n");
+            save_all(admins, faculties, students);
+        }
+        break;
+        case 3:
+        {
+            Student *logged = student_login(students);
+            if (logged)
+                student_menu(&students, &faculties);
+            else
+                printf("Invalid credentials.\n");
+            save_all(admins, faculties, students);
+        }
+        break;
+        case 4:
+        {
+            save_all(admins, faculties, students);
+            printf("Saved to files.\n");
+            break;
+        }
+        case 5:
+        {
+            create_root_admin(&admins);
+            break;
+        }
+        case 0:
+        {
+            printf("Exiting...\n");
+            break;
+        }
+        default:
+            printf("Invalid option!\n");
+        }
+    }
+    save_all(admins, faculties, students);
+    return 0;
+}
+
+static void main_menu(void)
+{
+    printf(
+        "======== University Portal ========\n"
+        "1. Admin Login\n"
+        "2. Faculty Login\n"
+        "3. Student Login\n"
+        "4. Save All\n"
+        "5. Create admin\n"
+        "0. Exit\n"
+        "Select: ");
+}
+
 static void save_all(AdminNode *a, FacultyNode *f, StudentNode *s)
 {
     save_admins(a, ADMINS_FILE);
@@ -23,435 +114,251 @@ static void save_all(AdminNode *a, FacultyNode *f, StudentNode *s)
     save_students(s, STUDENTS_FILE);
 }
 
-int main(void)
+void admin_menu(AdminNode **admins, FacultyNode **faculties, StudentNode **students)
 {
-    AdminNode *admins = NULL;
-    FacultyNode *facultyList = NULL;
-    StudentNode *students = NULL;
-
-    /* Load persisted data on start */
-    load_admins(&admins, ADMINS_FILE);
-    load_faculty(&facultyList, FACULTY_FILE);
-    load_students(&students, STUDENTS_FILE, facultyList);
-
     int choice = -1;
     while (choice != 0)
     {
-        mainMenu();
+        // Show actions:
+        printf(
+            "======= Admin dashboard =======\n"
+            "1. View All Admins\n"
+            "2. View All Faculty\n"
+            "3. View All Students\n"
+            "4. Add Admin\n"
+            "5. Remove Admin\n"
+            "6. Add Faculty\n"
+            "7. Remove Faculty\n"
+            "8. Add Student\n"
+            "9. Remove Student\n"
+            "0. Logout\n"
+            "Select: ");
+
         if (scanf("%d", &choice) != 1)
         {
             while (getchar() != '\n')
                 ;
             continue;
         }
-        getchar(); /* consume newline */
+        getchar();
 
         switch (choice)
         {
         case 1:
-            adminMenu(&admins);
-            save_all(admins, facultyList, students);
-            break;
-        case 2:
-            facultyMenu(&facultyList);
-            save_all(admins, facultyList, students);
-            break;
-        case 3:
-            studentMenu(&students, facultyList);
-            save_all(admins, facultyList, students);
-            break;
-        case 4:
+        {
             printf("All Admins:\n");
-            print_admin_list(admins);
+            print_admin_list(*admins);
             break;
-        case 5:
+        }
+        case 2:
+        {
             printf("All Faculty:\n");
-            print_faculty_list(facultyList);
+            print_faculty_list(*faculties);
             break;
-        case 6:
+        }
+        case 3:
+        {
             printf("All Students:\n");
-            print_student_list(students);
+            print_student_list(*students);
             break;
+        }
+        case 4:
+        {
+            create_root_admin(admins);
+            break;
+        }
+        case 5:
+        {
+            uint32_t admin_del_id;
+            printf("Admin ID to remove: ");
+            if (scanf("%u", &admin_del_id) != 1)
+            {
+                while (getchar() != '\n')
+                    ;
+                break;
+            }
+            getchar();
+            delete_admin(admins, admin_del_id);
+            break;
+        }
+        case 6:
+        {
+            uint32_t faculty_add_id;
+            char name[MAX_NAME_LENGTH], email[MAX_EMAIL_LENGTH], pass[MAX_PASSWORD_LENGTH];
+
+            printf("Faculty ID: ");
+            if (scanf("%u", &faculty_add_id) != 1)
+            {
+                while (getchar() != '\n')
+                    ;
+                break;
+            }
+
+            getchar();
+
+            printf("Name: ");
+            fgets(name, sizeof(name), stdin);
+            name[strcspn(name, "\n")] = 0;
+
+            printf("Email: ");
+            fgets(email, sizeof(email), stdin);
+            email[strcspn(email, "\n")] = 0;
+
+            printf("Password: ");
+            fgets(pass, sizeof(pass), stdin);
+            pass[strcspn(pass, "\n")] = 0;
+
+            printf("Department: ");
+            char dept[MAX_DEPARTMENT_LENGTH];
+            fgets(dept, sizeof(dept), stdin);
+            dept[strcspn(dept, "\n")] = 0;
+
+            create_faculty(faculties, faculty_add_id, name, email, pass, dept);
+            break;
+        }
         case 7:
-            save_all(admins, facultyList, students);
-            printf("Saved to files.\n");
+        {
+            uint32_t faculty_delete_id;
+            printf("Faculty ID to remove: ");
+            if (scanf("%u", &faculty_delete_id) != 1)
+            {
+                while (getchar() != '\n')
+                    ;
+                break;
+            }
+            getchar();
+            delete_faculty(faculties, faculty_delete_id);
             break;
+        }
+        case 8:
+        {
+            uint32_t advisor_id, student_add_id;
+            char name[MAX_NAME_LENGTH], email[MAX_EMAIL_LENGTH], password[MAX_PASSWORD_LENGTH], dept[MAX_DEPARTMENT_LENGTH];
+            uint16_t year;
+            uint8_t month;
+            Faculty *advisor = NULL;
+
+            printf("Student ID: ");
+            if (scanf("%u", &student_add_id) != 1)
+            {
+                while (getchar() != '\n')
+                    ;
+                break;
+            }
+            getchar();
+
+            printf("Name: ");
+            fgets(name, sizeof(name), stdin);
+            name[strcspn(name, "\n")] = 0;
+
+            printf("Email: ");
+            fgets(email, sizeof(email), stdin);
+            email[strcspn(email, "\n")] = 0;
+
+            printf("Password: ");
+            fgets(password, sizeof(password), stdin);
+            password[strcspn(password, "\n")] = 0;
+
+            printf("Department: ");
+            fgets(dept, sizeof(dept), stdin);
+            dept[strcspn(dept, "\n")] = 0;
+
+            printf("Year: ");
+            if (scanf("%hu", &year) != 1)
+            {
+                while (getchar() != '\n')
+                    ;
+                break;
+            }
+
+            printf("Month: ");
+            if (scanf("%hhu", &month) != 1)
+            {
+                while (getchar() != '\n')
+                    ;
+                break;
+            }
+
+            printf("Advisor Faculty ID: ");
+            if (scanf("%u", &advisor_id) != 1)
+            {
+                while (getchar() != '\n')
+                    ;
+                break;
+            }
+            getchar();
+
+            advisor = find_faculty_by_id(*faculties, advisor_id);
+            if (!advisor)
+            {
+                printf("Faculty not found to assign as advisor!\n");
+                break;
+            }
+
+            create_student(students, student_add_id, name, email, password, dept, year, month, advisor);
+            break;
+        }
+        case 9:
+        {
+            uint32_t student_delete_id;
+            printf("Student ID to remove: ");
+            if (scanf("%u", &student_delete_id) != 1)
+            {
+                while (getchar() != '\n')
+                    ;
+                break;
+            }
+            getchar();
+            delete_student(students, student_delete_id);
+            break;
+        }
         case 0:
-            printf("Exiting...\n");
+        {
+            printf("Logging out...\n");
             break;
+        }
         default:
             printf("Invalid option!\n");
         }
+
+        save_all(*admins, *faculties, *students);
     }
-
-    /* Save on exit (defensive) */
-    save_all(admins, facultyList, students);
-    return 0;
 }
 
-static void mainMenu(void)
+void faculty_menu(FacultyNode **faculty)
 {
-    printf("\n==== University Management ====\n");
-    printf("1. Admin\n2. Faculty\n3. Student\n4. View Admins\n5. View Faculty\n6. View Students\n7. Save Now\n0. Exit\nSelect: ");
 }
 
-static void adminMenu(AdminNode **admins)
+void student_menu(StudentNode **students, FacultyNode **faculty)
 {
-    int opt;
-    printf("Admin Menu: 1-Create 2-Delete 3-View: ");
-    if (scanf("%d", &opt) != 1)
+}
+
+void create_root_admin(AdminNode **admins)
+{
+    uint32_t id;
+    char name[MAX_NAME_LENGTH], email[MAX_EMAIL_LENGTH], pass[MAX_PASSWORD_LENGTH];
+
+    printf("ID: ");
+    if (scanf("%u", &id) != 1)
     {
         while (getchar() != '\n')
             ;
         return;
     }
-    getchar();
-    if (opt == 1)
-    {
-        uint32_t id;
-        char name[MAX_NAME_LENGTH], email[MAX_EMAIL_LENGTH], password[MAX_PASSWORD_LENGTH];
-        printf("ID: ");
-        if (scanf("%u", &id) != 1)
-        {
-            while (getchar() != '\n')
-                ;
-            return;
-        }
-        getchar();
-        printf("Name: ");
-        fgets(name, MAX_NAME_LENGTH, stdin);
-        name[strcspn(name, "\n")] = 0;
-        printf("Email: ");
-        fgets(email, MAX_EMAIL_LENGTH, stdin);
-        email[strcspn(email, "\n")] = 0;
-        printf("Password: ");
-        fgets(password, MAX_PASSWORD_LENGTH, stdin);
-        password[strcspn(password, "\n")] = 0;
-        if (create_admin(admins, id, name, email, password))
-            printf("Admin created.\n");
-        else
-            printf("Failed to create admin.\n");
-    }
-    else if (opt == 2)
-    {
-        uint32_t id;
-        printf("ID to delete: ");
-        if (scanf("%u", &id) != 1)
-        {
-            while (getchar() != '\n')
-                ;
-            return;
-        }
-        getchar();
-        if (delete_admin(admins, id) == 0)
-            printf("Deleted.\n");
-        else
-            printf("Not found.\n");
-    }
-    else if (opt == 3)
-    {
-        print_admin_list(*admins);
-    }
-    else
-        printf("Invalid.\n");
-}
 
-static void facultyMenu(FacultyNode **faculty)
-{
-    int opt;
-    printf("Faculty Menu: 1-Create 2-Delete 3-View: ");
-    if (scanf("%d", &opt) != 1)
-    {
-        while (getchar() != '\n')
-            ;
-        return;
-    }
-    getchar();
-    if (opt == 1)
-    {
-        uint32_t id;
-        char name[MAX_NAME_LENGTH], email[MAX_EMAIL_LENGTH], pass[MAX_PASSWORD_LENGTH], dept[MAX_DEPARTMENT_LENGTH];
-        printf("ID: ");
-        if (scanf("%u", &id) != 1)
-        {
-            while (getchar() != '\n')
-                ;
-            return;
-        }
-        getchar();
-        printf("Name: ");
-        fgets(name, MAX_NAME_LENGTH, stdin);
-        name[strcspn(name, "\n")] = 0;
-        printf("Email: ");
-        fgets(email, MAX_EMAIL_LENGTH, stdin);
-        email[strcspn(email, "\n")] = 0;
-        printf("Password: ");
-        fgets(pass, MAX_PASSWORD_LENGTH, stdin);
-        pass[strcspn(pass, "\n")] = 0;
-        printf("Dept (e.g., CSE): ");
-        fgets(dept, MAX_DEPARTMENT_LENGTH, stdin);
-        dept[strcspn(dept, "\n")] = 0;
-        if (create_faculty(faculty, id, name, email, pass, dept))
-            printf("Faculty created.\n");
-        else
-            printf("Failed to create faculty.\n");
-    }
-    else if (opt == 2)
-    {
-        uint32_t id;
-        printf("ID to delete: ");
-        if (scanf("%u", &id) != 1)
-        {
-            while (getchar() != '\n')
-                ;
-            return;
-        }
-        getchar();
-        if (delete_faculty(faculty, id) == 0)
-            printf("Deleted.\n");
-        else
-            printf("Not found.\n");
-    }
-    else if (opt == 3)
-    {
-        print_faculty_list(*faculty);
-    }
-    else
-        printf("Invalid.\n");
-}
+    getchar(); // Clear newline character from input buffer
 
-static void studentMenu(StudentNode **students, FacultyNode *facultyList)
-{
-    int opt;
-    printf("Student Menu: 1-Create 2-Delete 3-View 4-Assign/Change Advisor 5-Add CourseID 6-Remove CourseID: ");
-    if (scanf("%d", &opt) != 1)
-    {
-        while (getchar() != '\n')
-            ;
-        return;
-    }
-    getchar();
-    if (opt == 1)
-    {
-        uint32_t id;
-        char name[MAX_NAME_LENGTH], email[MAX_EMAIL_LENGTH], pass[MAX_PASSWORD_LENGTH], dept[MAX_DEPARTMENT_LENGTH];
-        uint16_t year;
-        uint8_t month;
-        uint32_t adv_id = 0;
-        printf("ID: ");
-        if (scanf("%u", &id) != 1)
-        {
-            while (getchar() != '\n')
-                ;
-            return;
-        }
-        getchar();
-        printf("Name: ");
-        fgets(name, MAX_NAME_LENGTH, stdin);
-        name[strcspn(name, "\n")] = 0;
-        printf("Email: ");
-        fgets(email, MAX_EMAIL_LENGTH, stdin);
-        email[strcspn(email, "\n")] = 0;
-        printf("Password: ");
-        fgets(pass, MAX_PASSWORD_LENGTH, stdin);
-        pass[strcspn(pass, "\n")] = 0;
-        printf("Dept (e.g., CSE): ");
-        fgets(dept, MAX_DEPARTMENT_LENGTH, stdin);
-        dept[strcspn(dept, "\n")] = 0;
-        printf("Admission Year: ");
-        if (scanf("%hu", &year) != 1)
-        {
-            while (getchar() != '\n')
-                ;
-            return;
-        }
-        printf("Admission Month: ");
-        if (scanf("%hhu", &month) != 1)
-        {
-            while (getchar() != '\n')
-                ;
-            return;
-        }
-        printf("Advisor Faculty ID (0 for none): ");
-        if (scanf("%u", &adv_id) != 1)
-        {
-            while (getchar() != '\n')
-                ;
-            return;
-        }
-        getchar();
-        Faculty *adv = adv_id ? find_faculty_by_id(facultyList, adv_id) : NULL;
-        if (create_student(students, id, name, email, pass, dept, year, month, adv))
-            printf("Student created.\n");
-        else
-            printf("Failed to create student.\n");
-    }
-    else if (opt == 2)
-    {
-        uint32_t id;
-        printf("ID to delete: ");
-        if (scanf("%u", &id) != 1)
-        {
-            while (getchar() != '\n')
-                ;
-            return;
-        }
-        getchar();
-        if (delete_student(students, id) == 0)
-            printf("Deleted.\n");
-        else
-            printf("Not found.\n");
-    }
-    else if (opt == 3)
-    {
-        print_student_list(*students);
-    }
-    else if (opt == 4)
-    {
-        uint32_t sid, fid;
-        printf("Student ID: ");
-        if (scanf("%u", &sid) != 1)
-        {
-            while (getchar() != '\n')
-                ;
-            return;
-        }
-        printf("New Faculty ID (0 to clear): ");
-        if (scanf("%u", &fid) != 1)
-        {
-            while (getchar() != '\n')
-                ;
-            return;
-        }
-        getchar();
-        StudentNode *s = *students;
-        Student *target = NULL;
-        while (s)
-        {
-            if (s->student->id == sid)
-            {
-                target = s->student;
-                break;
-            }
-            s = s->next;
-        }
-        if (!target)
-        {
-            printf("Student not found.\n");
-            return;
-        }
-        target->advisor = fid ? find_faculty_by_id(facultyList, fid) : NULL;
-        printf("Advisor %s.\n", target->advisor ? "updated" : "cleared");
-    }
-    else if (opt == 5)
-    {
-        uint32_t sid;
-        uint16_t cid;
-        printf("Student ID: ");
-        if (scanf("%u", &sid) != 1)
-        {
-            while (getchar() != '\n')
-                ;
-            return;
-        }
-        printf("Course ID to add: ");
-        if (scanf("%hu", &cid) != 1)
-        {
-            while (getchar() != '\n')
-                ;
-            return;
-        }
-        getchar();
-        StudentNode *s = *students;
-        Student *target = NULL;
-        while (s)
-        {
-            if (s->student->id == sid)
-            {
-                target = s->student;
-                break;
-            }
-            s = s->next;
-        }
-        if (!target)
-        {
-            printf("Student not found.\n");
-            return;
-        }
-        StudentCourseNode *n = (StudentCourseNode *)malloc(sizeof(StudentCourseNode));
-        if (!n)
-        {
-            printf("Alloc fail.\n");
-            return;
-        }
-        n->courseID = cid;
-        n->next = NULL;
-        if (!target->courses)
-            target->courses = n;
-        else
-        {
-            StudentCourseNode *c = target->courses;
-            while (c->next)
-                c = c->next;
-            c->next = n;
-        }
-        printf("Course added.\n");
-    }
-    else if (opt == 6)
-    {
-        uint32_t sid;
-        uint16_t cid;
-        printf("Student ID: ");
-        if (scanf("%u", &sid) != 1)
-        {
-            while (getchar() != '\n')
-                ;
-            return;
-        }
-        printf("Course ID to remove: ");
-        if (scanf("%hu", &cid) != 1)
-        {
-            while (getchar() != '\n')
-                ;
-            return;
-        }
-        getchar();
-        StudentNode *s = *students;
-        Student *target = NULL;
-        while (s)
-        {
-            if (s->student->id == sid)
-            {
-                target = s->student;
-                break;
-            }
-            s = s->next;
-        }
-        if (!target)
-        {
-            printf("Student not found.\n");
-            return;
-        }
-        StudentCourseNode *c = target->courses, *p = NULL;
-        while (c)
-        {
-            if (c->courseID == cid)
-            {
-                if (p)
-                    p->next = c->next;
-                else
-                    target->courses = c->next;
-                free(c);
-                printf("Course removed.\n");
-                return;
-            }
-            p = c;
-            c = c->next;
-        }
-        printf("Course not found.\n");
-    }
-    else
-    {
-        printf("Invalid.\n");
-    }
+    printf("\nName: ");
+    fgets(name, sizeof(name), stdin);
+    name[strcspn(name, "\n")] = 0;
+
+    printf("\nEmail: ");
+    fgets(email, sizeof(email), stdin);
+    email[strcspn(email, "\n")] = 0;
+
+    printf("Password: ");
+    fgets(pass, sizeof(pass), stdin);
+    pass[strcspn(pass, "\n")] = 0;
+
+    create_admin(admins, id, name, email, pass);
 }

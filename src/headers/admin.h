@@ -33,4 +33,7 @@ void print_admin_list(AdminNode *list);
 void save_admins(AdminNode *list, const char *filename);
 void load_admins(AdminNode **list, const char *filename);
 
+/* Login */
+Admin *admin_login(AdminNode *list);
+
 #endif

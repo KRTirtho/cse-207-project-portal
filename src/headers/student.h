@@ -38,9 +38,14 @@ Student *create_student(StudentNode **list, uint32_t id, const char *name, const
 int delete_student(StudentNode **list, uint32_t id);
 void print_student_list(StudentNode *list);
 
-/* File I/O
-   - load_students needs faculty list to relink advisor pointer by advisor_id saved in file. */
+/* File I/O */
 void save_students(StudentNode *list, const char *filename);
 void load_students(StudentNode **list, const char *filename, FacultyNode *faculty_list);
+
+/* Login */
+Student *student_login(StudentNode *list);
+
+/* Self-advising */
+void student_self_advising(Student *s);
 
 #endif
