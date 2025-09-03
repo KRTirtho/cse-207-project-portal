@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
-#include "../faculty/faculty.h"
+#include "faculty.h"
 
 typedef struct StudentCourseNode {
     uint16_t courseID;

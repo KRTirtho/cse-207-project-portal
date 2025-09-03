@@ -1,4 +1,6 @@
 *.txt
+!CMakeLists.txt
+
 *.o
 
 build

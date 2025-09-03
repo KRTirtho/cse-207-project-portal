@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "./faculty.h"
+#include "faculty.h"
 
 /* ---------- Internal helpers ---------- */
 static void trim_newline(char *s)

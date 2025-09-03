@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "./admin/admin.h"
-#include "./faculty/faculty.h"
-#include "./student/student.h"
+#include "admin.h"
+#include "faculty.h"
+#include "student.h"
 
 #define ADMINS_FILE "admins.txt"
 #define FACULTY_FILE "faculty.txt"

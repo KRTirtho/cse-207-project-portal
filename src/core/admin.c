@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "./admin.h"
+#include "admin.h"
 /* ---------- Internal helpers ---------- */
 static void trim_newline(char *s)
 {

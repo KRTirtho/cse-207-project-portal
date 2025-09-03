@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
-#include "../admin/admin.h"
+#include "admin.h"
 
 typedef struct Faculty {
     uint32_t id;
