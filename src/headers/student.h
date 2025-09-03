@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "faculty.h"
+#include "cJSON.h"
 
 typedef struct StudentCourseNode
 {
@@ -36,6 +37,11 @@ typedef struct StudentNode
 StudentCourseNode *create_student_course(const char *code, uint8_t section);
 void push_student_course(Student *s, const char *code, uint8_t section);
 void remove_student_course(Student *s, const char *code, uint8_t section);
+
+cJSON *student_course_to_json(const StudentCourseNode *course);
+StudentCourseNode *student_courses_from_json(cJSON *json_array);
+cJSON *student_to_json(const Student *s);
+Student *student_from_json(cJSON *json);
 
 /* Student CRUD */
 Student *create_student(StudentNode **list, uint32_t id, const char *name, const char *email, const char *password,

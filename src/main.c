@@ -5,9 +5,9 @@
 #include "faculty.h"
 #include "student.h"
 
-#define ADMINS_FILE "admins.txt"
-#define FACULTY_FILE "faculty.txt"
-#define STUDENTS_FILE "students.txt"
+#define ADMINS_FILE "admins.json"
+#define FACULTY_FILE "faculty.json"
+#define STUDENTS_FILE "students.json"
 
 static void main_menu(void);
 static void save_all(AdminNode *a, FacultyNode *f, StudentNode *s);

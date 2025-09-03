@@ -69,6 +69,128 @@ void remove_student_course(Student *s, const char *code, uint8_t section)
     }
 }
 
+cJSON *student_course_to_json(const StudentCourseNode *course)
+{
+    cJSON *json = cJSON_CreateObject();
+    cJSON_AddStringToObject(json, "code", course->code);
+    cJSON_AddNumberToObject(json, "section", course->section);
+    return json;
+}
+
+StudentCourseNode *student_courses_from_json(cJSON *json_array)
+{
+    StudentCourseNode *head = NULL, *tail = NULL;
+    cJSON *course_json = NULL;
+
+    cJSON_ArrayForEach(course_json, json_array)
+    {
+        StudentCourseNode *node = calloc(1, sizeof(StudentCourseNode));
+        if (!node)
+            continue;
+
+        cJSON *code = cJSON_GetObjectItemCaseSensitive(course_json, "code");
+        cJSON *section = cJSON_GetObjectItemCaseSensitive(course_json, "section");
+
+        if (cJSON_IsString(code) && code->valuestring)
+            snprintf(node->code, sizeof(node->code), "%s", code->valuestring);
+        if (cJSON_IsNumber(section))
+            node->section = (uint8_t)section->valueint;
+
+        node->next = NULL;
+        if (!head)
+            head = node;
+        else
+            tail->next = node;
+        tail = node;
+    }
+    return head;
+}
+
+// --- Student ---
+
+cJSON *student_to_json(const Student *s)
+{
+    if (!s)
+        return NULL;
+    cJSON *json = cJSON_CreateObject();
+
+    cJSON_AddNumberToObject(json, "id", s->id);
+    cJSON_AddStringToObject(json, "name", s->name);
+    cJSON_AddStringToObject(json, "email", s->email);
+    cJSON_AddStringToObject(json, "password", s->password);
+    cJSON_AddStringToObject(json, "department", s->department);
+    cJSON_AddNumberToObject(json, "admission_year", s->admission_year);
+    cJSON_AddNumberToObject(json, "admission_month", s->admission_month);
+    cJSON_AddNumberToObject(json, "cgpa", s->cgpa);
+
+    cJSON *courses_array = cJSON_CreateArray();
+    for (StudentCourseNode *cur = s->courses; cur; cur = cur->next)
+    {
+        cJSON_AddItemToArray(courses_array, student_course_to_json(cur));
+    }
+    cJSON_AddItemToObject(json, "courses", courses_array);
+
+    if (s->advisor)
+    {
+        extern cJSON *faculty_to_json(const struct Faculty *f);
+        cJSON_AddItemToObject(json, "advisor", faculty_to_json(s->advisor));
+    }
+    else
+    {
+        cJSON_AddNullToObject(json, "advisor");
+    }
+
+    return json;
+}
+
+Student *student_from_json(cJSON *json)
+{
+    Student *s = calloc(1, sizeof(Student));
+    if (!s)
+        return NULL;
+
+    cJSON *id = cJSON_GetObjectItemCaseSensitive(json, "id");
+    cJSON *name = cJSON_GetObjectItemCaseSensitive(json, "name");
+    cJSON *email = cJSON_GetObjectItemCaseSensitive(json, "email");
+    cJSON *pass = cJSON_GetObjectItemCaseSensitive(json, "password");
+    cJSON *dept = cJSON_GetObjectItemCaseSensitive(json, "department");
+    cJSON *year = cJSON_GetObjectItemCaseSensitive(json, "admission_year");
+    cJSON *month = cJSON_GetObjectItemCaseSensitive(json, "admission_month");
+    cJSON *cgpa = cJSON_GetObjectItemCaseSensitive(json, "cgpa");
+    cJSON *courses = cJSON_GetObjectItemCaseSensitive(json, "courses");
+    cJSON *adv = cJSON_GetObjectItemCaseSensitive(json, "advisor");
+
+    if (cJSON_IsNumber(id))
+        s->id = (uint32_t)id->valueint;
+    if (cJSON_IsString(name) && name->valuestring)
+        snprintf(s->name, sizeof(s->name), "%s", name->valuestring);
+    if (cJSON_IsString(email) && email->valuestring)
+        snprintf(s->email, sizeof(s->email), "%s", email->valuestring);
+    if (cJSON_IsString(pass) && pass->valuestring)
+        snprintf(s->password, sizeof(s->password), "%s", pass->valuestring);
+    if (cJSON_IsString(dept) && dept->valuestring)
+        snprintf(s->department, sizeof(s->department), "%s", dept->valuestring);
+    if (cJSON_IsNumber(year))
+        s->admission_year = (uint16_t)year->valueint;
+    if (cJSON_IsNumber(month))
+        s->admission_month = (uint8_t)month->valueint;
+    if (cJSON_IsNumber(cgpa))
+        s->cgpa = (float)cgpa->valuedouble;
+
+    if (cJSON_IsArray(courses))
+    {
+        s->courses = student_courses_from_json(courses);
+    }
+
+    if (cJSON_IsObject(adv))
+    {
+        extern struct Faculty *faculty_from_json(cJSON * json);
+        s->advisor = faculty_from_json(adv);
+    }
+
+    return s;
+}
+
 /* ---------- CRUD ---------- */
 Student *create_student(StudentNode **list, uint32_t id, const char *name, const char *email, const char *password,
                         const char *dept, uint16_t year, uint8_t month, Faculty *advisor)
@@ -171,97 +293,67 @@ void save_students(StudentNode *list, const char *filename)
     FILE *fp = fopen(filename, "w");
     if (!fp)
         return;
+    cJSON *array = cJSON_CreateArray();
+
     for (StudentNode *cur = list; cur; cur = cur->next)
     {
-        unsigned advisor_id = cur->student->advisor ? cur->student->advisor->id : 0;
-        unsigned count = 0;
-        for (StudentCourseNode *c = cur->student->courses; c; c = c->next)
-            count++;
-
-        fprintf(fp, "%u|%s|%s|%s|%s|%u|%u|%.2f|%u|%u|",
-                cur->student->id,
-                cur->student->name,
-                cur->student->email,
-                cur->student->password,
-                cur->student->department,
-                cur->student->admission_year,
-                cur->student->admission_month,
-                cur->student->cgpa,
-                advisor_id,
-                count);
-
-        unsigned i = 0;
-        for (StudentCourseNode *c = cur->student->courses; c; c = c->next, ++i)
-        {
-            fprintf(fp, "%s|%d", c->code, c->section);
-            if (c->next)
-                fputc(',', fp);
-        }
-        fputc('\n', fp);
+        cJSON *json = student_to_json(cur->student);
+        cJSON_AddItemToArray(array, json);
     }
+
+    char *out = cJSON_Print(array);
+    if (out)
+    {
+        fprintf(fp, "%s\n", out);
+        free(out);
+    }
+
+    cJSON_Delete(array);
     fclose(fp);
 }
 
 void load_students(StudentNode **list, const char *filename, FacultyNode *faculty_list)
 {
-    FILE *fp = fopen(filename, "r");
+    char *buffer = 0;
+    long length;
+    FILE *fp = fopen(filename, "rb");
     if (!fp)
         return;
-    char line[2048];
-    while (fgets(line, sizeof(line), fp))
+
+    fseek(fp, 0, SEEK_END);
+    length = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    buffer = malloc(length);
+    if (buffer)
     {
-        trim_newline(line);
-        if (!line[0])
-            continue;
+        fread(buffer, 1, length, fp);
+    }
+    fclose(fp);
 
-        char *id_str = strtok(line, "|");
-        char *name = strtok(NULL, "|");
-        char *email = strtok(NULL, "|");
-        char *pass = strtok(NULL, "|");
-        char *dept = strtok(NULL, "|");
-        char *year_str = strtok(NULL, "|");
-        char *month_str = strtok(NULL, "|");
-        char *cgpa_str = strtok(NULL, "|");
-        char *adv_str = strtok(NULL, "|");
-        char *cnt_str = strtok(NULL, "|");
-        char *courses_str = strtok(NULL, "|");
+    if (!buffer)
+        return;
 
-        if (!id_str || !name || !email || !pass || !dept || !year_str || !month_str || !cgpa_str || !adv_str || !cnt_str)
+    cJSON *json = cJSON_Parse(buffer);
+    free(buffer);
+    if (!json)
+        return;
+
+    if (cJSON_IsArray(json))
+    {
+        for (int i = 0; i < cJSON_GetArraySize(json); i++)
         {
-            continue;
-        }
-
-        uint32_t id = (uint32_t)strtoul(id_str, NULL, 10);
-        uint16_t year = (uint16_t)strtoul(year_str, NULL, 10);
-        uint8_t month = (uint8_t)strtoul(month_str, NULL, 10);
-        float cgpa = (float)strtod(cgpa_str, NULL);
-        uint32_t adv_id = (uint32_t)strtoul(adv_str, NULL, 10);
-        unsigned count = (unsigned)strtoul(cnt_str, NULL, 10);
-
-        Faculty *advisor = NULL;
-        if (adv_id)
-            advisor = find_faculty_by_id(faculty_list, adv_id);
-
-        Student *s = create_student(list, id, name, email, pass, dept, year, month, advisor);
-        if (!s)
-            continue;
-        s->cgpa = cgpa;
-
-        if (courses_str && count > 0)
-        {
-            char *tok = strtok(courses_str, ",");
-            while (tok)
+            cJSON *item = cJSON_GetArrayItem(json, i);
+            Student *s = student_from_json(item);
+            if (s)
             {
-                char *code = strtok(tok, "|");
-                char *section_str = strtok(NULL, "|");
-
-                if (code && section_str)
+                // Add the student to the list
+                StudentNode *node = (StudentNode *)malloc(sizeof(StudentNode));
+                if (node)
                 {
-                    int section = atoi(section_str);
-
-                    push_student_course(s, code, section);
+                    node->student = s;
+                    node->next = *list;
+                    *list = node;
                 }
-                tok = strtok(NULL, ",");
             }
         }
     }
