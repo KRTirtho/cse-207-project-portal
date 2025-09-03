@@ -257,29 +257,45 @@ int delete_student(StudentNode **list, uint32_t id)
     return -1;
 }
 
+void print_student(Student *student)
+{
+    printf("ID:%u Name:%s Dept:%s Year:%u Month:%u CGPA:%.2f",
+           student->id, student->name, student->department,
+           student->admission_year, student->admission_month,
+           student->cgpa);
+    if (student->advisor)
+        printf(" AdvisorID:%u", student->advisor->id);
+    printf("\n  Courses:");
+    StudentCourseNode *c = student->courses;
+    if (!c)
+        printf(" (none)");
+    while (c)
+    {
+        printf(" Code: %s Sec: %d", c->code, c->section);
+        c = c->next;
+    }
+    printf("\n");
+}
+
 void print_student_list(StudentNode *list)
 {
     StudentNode *cur = list;
     while (cur)
     {
-        printf("ID:%u Name:%s Dept:%s Year:%u Month:%u CGPA:%.2f",
-               cur->student->id, cur->student->name, cur->student->department,
-               cur->student->admission_year, cur->student->admission_month,
-               cur->student->cgpa);
-        if (cur->student->advisor)
-            printf(" AdvisorID:%u", cur->student->advisor->id);
-        printf("\n  Courses:");
-        StudentCourseNode *c = cur->student->courses;
-        if (!c)
-            printf(" (none)");
-        while (c)
-        {
-            printf(" Code: %s Sec: %d", c->code, c->section);
-            c = c->next;
-        }
+        print_student(cur->student);
         printf("\n");
         cur = cur->next;
     }
+}
+
+Student *find_student_by_id(StudentNode **students, uint32_t id)
+{
+    for (StudentNode *cur = *students; cur; cur = cur->next)
+    {
+        if (cur->student->id == id)
+            return cur->student;
+    }
+    return NULL;
 }
 
 /* ---------- File I/O ---------- */
@@ -329,9 +345,9 @@ void load_students(StudentNode **list, const char *filename, FacultyNode *facult
         fread(buffer, 1, length, fp);
     }
     fclose(fp);
-    
+
     if (!buffer)
-    return;
+        return;
 
     cJSON *json = cJSON_Parse(buffer);
     free(buffer);

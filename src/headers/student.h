@@ -47,7 +47,9 @@ Student *student_from_json(cJSON *json);
 Student *create_student(StudentNode **list, uint32_t id, const char *name, const char *email, const char *password,
                         const char *dept, uint16_t year, uint8_t month, Faculty *advisor);
 int delete_student(StudentNode **list, uint32_t id);
+void print_student(Student *student);
 void print_student_list(StudentNode *list);
+Student *find_student_by_id(StudentNode **students, uint32_t id);
 
 /* File I/O */
 void save_students(StudentNode *list, const char *filename);
