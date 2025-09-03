@@ -23,6 +23,52 @@ static void free_courses(StudentCourseNode *c)
     }
 }
 
+StudentCourseNode *create_student_course(const char *code, uint8_t section)
+{
+    StudentCourseNode *node = (StudentCourseNode *)malloc(sizeof(StudentCourseNode));
+    if (!node)
+        return NULL;
+    strncpy(node->code, code ? code : "", MAX_COURSE_CODE_LENGTH);
+    node->code[MAX_COURSE_CODE_LENGTH - 1] = '\0';
+    node->section = section;
+    node->next = NULL;
+    return node;
+}
+
+void push_student_course(Student *s, const char *code, uint8_t section)
+{
+    if (!s)
+        return;
+    StudentCourseNode *node = create_student_course(code, section);
+    if (!node)
+        return;
+    node->next = s->courses;
+    s->courses = node;
+}
+
+void remove_student_course(Student *s, const char *code, uint8_t section)
+{
+    if (!s || !code)
+        return;
+
+    StudentCourseNode *cur = s->courses;
+    StudentCourseNode *prev = NULL;
+    while (cur)
+    {
+        if (strcmp(cur->code, code) == 0 && cur->section == section)
+        {
+            if (prev)
+                prev->next = cur->next;
+            else
+                s->courses = cur->next;
+            free(cur);
+            return;
+        }
+        prev = cur;
+        cur = cur->next;
+    }
+}
+
 /* ---------- CRUD ---------- */
 Student *create_student(StudentNode **list, uint32_t id, const char *name, const char *email, const char *password,
                         const char *dept, uint16_t year, uint8_t month, Faculty *advisor)
@@ -106,7 +152,7 @@ void print_student_list(StudentNode *list)
             printf(" (none)");
         while (c)
         {
-            printf(" %u", c->courseID);
+            printf(" Code: %s Sec: %d", c->code, c->section);
             c = c->next;
         }
         printf("\n");
@@ -147,7 +193,7 @@ void save_students(StudentNode *list, const char *filename)
         unsigned i = 0;
         for (StudentCourseNode *c = cur->student->courses; c; c = c->next, ++i)
         {
-            fprintf(fp, "%u", c->courseID);
+            fprintf(fp, "%s|%d", c->code, c->section);
             if (c->next)
                 fputc(',', fp);
         }
@@ -206,20 +252,14 @@ void load_students(StudentNode **list, const char *filename, FacultyNode *facult
             char *tok = strtok(courses_str, ",");
             while (tok)
             {
-                uint16_t cid = (uint16_t)strtoul(tok, NULL, 10);
-                StudentCourseNode *node = (StudentCourseNode *)malloc(sizeof(StudentCourseNode));
-                if (!node)
-                    break;
-                node->courseID = cid;
-                node->next = NULL;
-                if (!s->courses)
-                    s->courses = node;
-                else
+                char *code = strtok(tok, "|");
+                char *section_str = strtok(NULL, "|");
+
+                if (code && section_str)
                 {
-                    StudentCourseNode *curC = s->courses;
-                    while (curC->next)
-                        curC = curC->next;
-                    curC->next = node;
+                    int section = atoi(section_str);
+
+                    push_student_course(s, code, section);
                 }
                 tok = strtok(NULL, ",");
             }
@@ -250,8 +290,4 @@ Student *student_login(StudentNode *list)
         }
         printf("Invalid credentials. Please try again.\n\n");
     }
-}
-
-void student_self_advising(Student *s)
-{
 }

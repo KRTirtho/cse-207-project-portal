@@ -7,7 +7,8 @@
 
 typedef struct StudentCourseNode
 {
-    uint16_t courseID;
+    char code[MAX_COURSE_CODE_LENGTH];
+    uint8_t section;
     struct StudentCourseNode *next;
 } StudentCourseNode;
 
@@ -21,8 +22,8 @@ typedef struct Student
     uint16_t admission_year;
     uint8_t admission_month;
     float cgpa;
-    Faculty *advisor;
-    StudentCourseNode *courses;
+    struct Faculty *advisor;
+    struct StudentCourseNode *courses;
     struct Student *next;
 } Student;
 
@@ -31,6 +32,10 @@ typedef struct StudentNode
     Student *student;
     struct StudentNode *next;
 } StudentNode;
+
+StudentCourseNode *create_student_course(const char *code, uint8_t section);
+void push_student_course(Student *s, const char *code, uint8_t section);
+void remove_student_course(Student *s, const char *code, uint8_t section);
 
 /* Student CRUD */
 Student *create_student(StudentNode **list, uint32_t id, const char *name, const char *email, const char *password,
@@ -44,8 +49,5 @@ void load_students(StudentNode **list, const char *filename, FacultyNode *facult
 
 /* Login */
 Student *student_login(StudentNode *list);
-
-/* Self-advising */
-void student_self_advising(Student *s);
 
 #endif

@@ -74,9 +74,161 @@ void print_faculty_list(FacultyNode *list)
     FacultyNode *cur = list;
     while (cur)
     {
-        printf("ID:%u Name:%s Dept:%s\n", cur->faculty->id, cur->faculty->name, cur->faculty->department);
+        printf("ID:%u Name:%s Dept:%s", cur->faculty->id, cur->faculty->name, cur->faculty->department);
+        printf("Courses: ");
+        FacultyCourseNode *course = cur->faculty->courses;
+        while (course)
+        {
+            printf("%s (Section %d) ", course->code, course->section);
+            course = course->next;
+        }
+        printf("\n");
         cur = cur->next;
     }
+}
+
+void add_faculty_course(Faculty *faculty, const char *code, uint8_t section)
+{
+}
+
+FacultyCourseNode *create_faculty_course(const char *code, uint8_t section)
+{
+    FacultyCourseNode *node = (FacultyCourseNode *)malloc(sizeof(FacultyCourseNode));
+    if (!node)
+        return NULL;
+    strncpy(node->code, code ? code : "", MAX_COURSE_CODE_LENGTH);
+    node->code[MAX_COURSE_CODE_LENGTH - 1] = '\0';
+    node->section = section;
+    node->next = NULL;
+    return node;
+}
+
+void push_faculty_course(Faculty *f, const char *code, uint8_t section)
+{
+    if (!f)
+        return;
+    FacultyCourseNode *node = create_faculty_course(code, section);
+    if (!node)
+        return;
+    node->next = f->courses;
+    f->courses = node;
+}
+
+void remove_faculty_course(Faculty *faculty, const char *code, uint8_t section)
+{
+    if (!faculty || !code)
+        return;
+
+    FacultyCourseNode *cur = faculty->courses;
+    FacultyCourseNode *prev = NULL;
+    while (cur)
+    {
+        if (strcmp(cur->code, code) == 0 && cur->section == section)
+        {
+            if (prev)
+                prev->next = cur->next;
+            else
+                faculty->courses = cur->next;
+            free(cur);
+            return;
+        }
+        prev = cur;
+        cur = cur->next;
+    }
+}
+
+cJSON *faculty_course_to_json(const FacultyCourseNode *course)
+{
+    cJSON *json = cJSON_CreateObject();
+    cJSON_AddStringToObject(json, "code", course->code);
+    cJSON_AddNumberToObject(json, "section", course->section);
+    return json;
+}
+
+cJSON *faculty_to_json(const Faculty *f)
+{
+    if (!f)
+        return NULL;
+
+    cJSON *json = cJSON_CreateObject();
+    cJSON_AddNumberToObject(json, "id", f->id);
+    cJSON_AddStringToObject(json, "name", f->name);
+    cJSON_AddStringToObject(json, "email", f->email);
+    cJSON_AddStringToObject(json, "password", f->password);
+    cJSON_AddStringToObject(json, "department", f->department);
+
+    // Convert linked list of courses into JSON array
+    cJSON *courses_array = cJSON_CreateArray();
+    FacultyCourseNode *cur = f->courses;
+    while (cur)
+    {
+        cJSON_AddItemToArray(courses_array, faculty_course_to_json(cur));
+        cur = cur->next;
+    }
+    cJSON_AddItemToObject(json, "courses", courses_array);
+
+    return json;
+}
+
+FacultyCourseNode *faculty_courses_from_json(cJSON *json_array)
+{
+    FacultyCourseNode *head = NULL, *tail = NULL;
+
+    cJSON *course_json = NULL;
+    cJSON_ArrayForEach(course_json, json_array)
+    {
+        FacultyCourseNode *node = create_faculty_course("", 0);
+
+        cJSON *code = cJSON_GetObjectItemCaseSensitive(course_json, "code");
+        cJSON *section = cJSON_GetObjectItemCaseSensitive(course_json, "section");
+
+        if (cJSON_IsString(code) && code->valuestring)
+            snprintf(node->code, sizeof(node->code), "%s", code->valuestring);
+
+        if (cJSON_IsNumber(section))
+            node->section = (uint8_t)section->valueint;
+
+        node->next = NULL;
+
+        if (!head)
+            head = node;
+        else
+            tail->next = node;
+        tail = node;
+    }
+    return head;
+}
+
+Faculty *faculty_from_json(cJSON *json)
+{
+    Faculty *f = malloc(sizeof(Faculty));
+    if (!f)
+        return NULL;
+
+    cJSON *id = cJSON_GetObjectItemCaseSensitive(json, "id");
+    cJSON *name = cJSON_GetObjectItemCaseSensitive(json, "name");
+    cJSON *email = cJSON_GetObjectItemCaseSensitive(json, "email");
+    cJSON *password = cJSON_GetObjectItemCaseSensitive(json, "password");
+    cJSON *department = cJSON_GetObjectItemCaseSensitive(json, "department");
+    cJSON *courses = cJSON_GetObjectItemCaseSensitive(json, "courses");
+
+    if (cJSON_IsNumber(id))
+        f->id = (uint32_t)id->valuedouble;
+    if (cJSON_IsString(name) && name->valuestring)
+        snprintf(f->name, sizeof(f->name), "%s", name->valuestring);
+    if (cJSON_IsString(email) && email->valuestring)
+        snprintf(f->email, sizeof(f->email), "%s", email->valuestring);
+    if (cJSON_IsString(password) && password->valuestring)
+        snprintf(f->password, sizeof(f->password), "%s", password->valuestring);
+    if (cJSON_IsString(department) && department->valuestring)
+        snprintf(f->department, sizeof(f->department), "%s", department->valuestring);
+
+    if (cJSON_IsArray(courses))
+    {
+        f->courses = faculty_courses_from_json(courses);
+    }
+
+    return f;
 }
 
 Faculty *find_faculty_by_id(FacultyNode *list, uint32_t id)
@@ -92,33 +244,80 @@ void save_faculty(FacultyNode *list, const char *filename)
     FILE *fp = fopen(filename, "w");
     if (!fp)
         return;
+
+    cJSON *array = cJSON_CreateArray();
     for (FacultyNode *cur = list; cur; cur = cur->next)
-        fprintf(fp, "%u|%s|%s|%s|%s\n", cur->faculty->id, cur->faculty->name, cur->faculty->email, cur->faculty->password, cur->faculty->department);
+    {
+        cJSON_AddItemToArray(array, faculty_to_json(cur->faculty));
+    }
+
+    char *json_string = cJSON_Print(array);
+    if (json_string)
+    {
+        fprintf(fp, "%s\n", json_string);
+        free(json_string);
+    }
+    cJSON_Delete(array);
     fclose(fp);
 }
 
 void load_faculty(FacultyNode **list, const char *filename)
 {
-    FILE *fp = fopen(filename, "r");
+    char *buffer = 0;
+    long length;
+    FILE *fp = fopen(filename, "rb");
     if (!fp)
         return;
-    char line[1024];
-    while (fgets(line, sizeof(line), fp))
+
+    fseek(fp, 0, SEEK_END);
+    length = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    buffer = malloc(length);
+    if (buffer)
     {
-        trim_newline(line);
-        if (!line[0])
-            continue;
-        char *id_str = strtok(line, "|");
-        char *name = strtok(NULL, "|");
-        char *email = strtok(NULL, "|");
-        char *pass = strtok(NULL, "|");
-        char *dept = strtok(NULL, "|");
-        if (!id_str || !name || !email || !pass || !dept)
-            continue;
-        uint32_t id = (uint32_t)strtoul(id_str, NULL, 10);
-        create_faculty(list, id, name, email, pass, dept);
+        fread(buffer, 1, length, fp);
     }
     fclose(fp);
+
+    if (!buffer)
+        return;
+
+    cJSON *json = cJSON_Parse(buffer);
+    free(buffer);
+    if (!json)
+        return;
+
+    // Parse array of faculties and convert to linked list
+    if (cJSON_IsArray(json))
+    {
+        cJSON *faculty_json = NULL;
+        cJSON_ArrayForEach(faculty_json, json)
+        {
+            Faculty *f = faculty_from_json(faculty_json);
+            if (f)
+            {
+                FacultyNode *node = (FacultyNode *)malloc(sizeof(FacultyNode));
+                if (node)
+                {
+                    node->faculty = f;
+                    node->next = NULL;
+                    if (*list == NULL)
+                        *list = node;
+                    else
+                    {
+                        FacultyNode *cur = *list;
+                        while (cur->next)
+                            cur = cur->next;
+                        cur->next = node;
+                    }
+                }
+                else
+                {
+                    free(f);
+                }
+            }
+        }
+    }
 }
 
 Faculty *faculty_login(FacultyNode *list)
@@ -130,7 +329,7 @@ Faculty *faculty_login(FacultyNode *list)
         printf("Faculty Login\nEmail: ");
         fgets(email, sizeof(email), stdin);
         email[strcspn(email, "\n")] = 0;
-        
+
         printf("Password: ");
         fgets(pass, sizeof(pass), stdin);
         pass[strcspn(pass, "\n")] = 0;
@@ -142,7 +341,7 @@ Faculty *faculty_login(FacultyNode *list)
                 return cur->faculty;
             cur = cur->next;
         }
-        
+
         printf("Invalid credentials. Please try again.\n\n");
     }
 }

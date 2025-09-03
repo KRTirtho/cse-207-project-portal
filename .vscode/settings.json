@@ -3,6 +3,7 @@
     "student.h": "c",
     "stdint.h": "c",
     "faculty.h": "c",
-    "stdio.h": "c"
+    "stdio.h": "c",
+    "admin.h": "c"
   }
 }

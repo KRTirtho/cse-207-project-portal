@@ -3,6 +3,11 @@ project(UniversityPortal C)
 
 file(GLOB SOURCES "src/core/*.c" "src/main.c")
 
-add_executable(portal ${SOURCES})
+set(CJSON_SOURCES src/external/cjson/cJSON.c)
 
-target_include_directories(portal PRIVATE ${CMAKE_SOURCE_DIR}/src/headers)
+add_executable(portal ${SOURCES} ${CJSON_SOURCES})
+
+target_include_directories(portal PRIVATE 
+  ${CMAKE_SOURCE_DIR}/src/headers
+  ${CMAKE_SOURCE_DIR}/src/external/cjson
+)
