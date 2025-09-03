@@ -5,12 +5,14 @@
 #include <stdio.h>
 #include "faculty.h"
 
-typedef struct StudentCourseNode {
+typedef struct StudentCourseNode
+{
     uint16_t courseID;
     struct StudentCourseNode *next;
 } StudentCourseNode;
 
-typedef struct Student {
+typedef struct Student
+{
     uint32_t id;
     char name[MAX_NAME_LENGTH];
     char email[MAX_EMAIL_LENGTH];
@@ -24,7 +26,8 @@ typedef struct Student {
     struct Student *next;
 } Student;
 
-typedef struct StudentNode {
+typedef struct StudentNode
+{
     Student *student;
     struct StudentNode *next;
 } StudentNode;

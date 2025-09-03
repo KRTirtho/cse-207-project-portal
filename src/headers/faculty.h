@@ -5,7 +5,8 @@
 #include <stdio.h>
 #include "admin.h"
 
-typedef struct Faculty {
+typedef struct Faculty
+{
     uint32_t id;
     char name[MAX_NAME_LENGTH];
     char email[MAX_EMAIL_LENGTH];
@@ -14,7 +15,8 @@ typedef struct Faculty {
     struct Faculty *next;
 } Faculty;
 
-typedef struct FacultyNode {
+typedef struct FacultyNode
+{
     Faculty *faculty;
     struct FacultyNode *next;
 } FacultyNode;
